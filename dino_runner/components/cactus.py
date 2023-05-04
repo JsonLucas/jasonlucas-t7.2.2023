@@ -10,12 +10,17 @@ class Cactus:
         self.cactusRect = self.image.get_rect()
         self.cactusRect.x = SCREEN_WIDTH
         self.cactusRect.y = SMALL_Y
+        self.cactusRect.width = self.image.get_width()
+        self.cactusRect.height = self.image.get_height()
         pass
     
     def update(self, player, gameSpeed):
         collision = self.cactusRect.colliderect(player)
+        if collision:
+            print(self.cactusRect)
+            self.cactusRect.normalize()
         if self.cactusRect.bottomleft[0] < 0:
-            self.cactusRect.x = SCREEN_WIDTH + randint(1, SCREEN_WIDTH)
+            self.cactusRect.x = SCREEN_WIDTH + (self.image.get_width() * 2)
             self.cactusRect.y = randrange(50, 200, 50)
             pass            
         self.cactusRect.x -= gameSpeed

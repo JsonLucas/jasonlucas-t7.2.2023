@@ -8,6 +8,8 @@ class Bird:
         self.birdRect = self.image.get_rect()
         self.birdRect.x = SCREEN_WIDTH
         self.birdRect.y = randrange(100, 275, 25)
+        self.birdRect.width = self.image.get_width()
+        self.birdRect.height = self.image.get_height()
         self.flyCount = 0
         
     def update(self, player, gameSpeed):

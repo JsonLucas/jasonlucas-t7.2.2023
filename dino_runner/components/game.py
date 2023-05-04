@@ -4,10 +4,12 @@ from dino_runner.components.dinosaur import Dinosaur
 from dino_runner.components.cactus import Cactus
 from dino_runner.components.cloud import Cloud
 from dino_runner.components.bird import Bird
+from dino_runner.components.playerTries import PlayerTries
 
-from dino_runner.utils.constants import BG, ICON, SCREEN_HEIGHT, SCREEN_WIDTH, TITLE, FPS
+from dino_runner.utils.constants import BG, ICON, SCREEN_HEIGHT, SCREEN_WIDTH, TITLE, FPS, SOUNDS
 
 INCREASE_VEL_VALUE = 2.5
+NUM_OBSTACLES = 4
 
 
 class Game:
@@ -24,44 +26,53 @@ class Game:
         self.gameFps = FPS
         self.points = 0
         self.player = Dinosaur()
+        self.playerTries = PlayerTries()
         self.cactus = []
         self.cloud = []
         self.bird = Bird()
-        self.font = pygame.font.SysFont('arialblack', 25, True, True)
+        self.font = pygame.font.SysFont('arial', 25, True, True)
+        self.rgb = { 'r': 255, 'g': 255, 'b': 255 }
         self.hasCollision = False
+        self.alternator = 0
+        self.changeBg = False
+        self.endgame = False
 
+    def execute(self):
+        self.endgame = True
+        
+        while self.endgame:
+            if not self.playing:
+                self.gameOver()
+        
+        pygame.display.quit()
+        pygame.quit()
+        
     def run(self):
         # Game loop: events - update - draw
-        for i in range(4):
-            cloud = Cloud()
-            self.cloud.append(cloud)
-
-        for j in range(4):
-            cactus = Cactus()
-            self.cactus.append(cactus)
+        self.clearScreen()
+        
         self.playing = True
         while self.playing:
-            # if not self.hasCollision:
-                self.hasCollision = self.update()
-            # else:
-                # pass
-        pygame.quit()
+            self.hasCollision = self.update()
+            self.verificateCollision()
+        
+        if self.endgame:
+            self.execute()
 
     def events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.playing = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:
-                    print('teste')
 
-    def update(self): 
-        points = self.showMessage(f'Points: {self.points}', 25, (255, 0, 0))
+    def update(self):
+        points = self.showMessage(f'Points: {self.points}', 25, (0, 0, 0))
         self.points += 1
         self.events()
         self.draw(points)
         userInput = pygame.key.get_pressed()
         self.player.update(userInput)
+        self.playerTries.update(self.player)
+            
         for i in range(self.cloud.__len__()):
             self.cloud[i].update(self.game_speed)
             
@@ -71,19 +82,35 @@ class Game:
                 return True
         
         if self.points >= 550:
-            hasCollision = self.bird.update(self.player, self.game_speed)
+            hasCollision = self.bird.update(self.player.dino_rect, self.game_speed)
             if hasCollision == True:
                 return True
-
+        
+        if self.points%1000 == 0:
+            SOUNDS['score'].play()
+        
+        if self.points > 0:
+            if self.points%1000 == 0:
+                if self.changeBg:
+                    self.alternator = self.points
+                    self.changeBg = False
+                else:
+                    self.alternator += 1
+                    self.changeBg = True
+        # self.changeBgColor()
+        
     def draw(self, text: pygame.Surface):
         if self.points % 1000 == 0:
             # self.gameFps += INCREASE_VEL_VALUE
             self.game_speed += INCREASE_VEL_VALUE
         self.clock.tick(self.gameFps)
-        self.screen.fill((0, 0, 0))
+        self.screen.fill((self.rgb['r'], self.rgb['g'], self.rgb['b']))
         self.draw_background()
 
         self.player.draw(self.screen)
+        for i in range(self.player.hp//1000):
+            self.playerTries.draw(self.screen, i)
+        
         for i in range(self.cloud.__len__()):
             self.cloud[i].draw(self.screen)
             
@@ -115,3 +142,78 @@ class Game:
         message = f'{text}'
         formatedText = font.render(message, False, color)
         return formatedText
+    
+    def verificateCollision(self):
+        if self.hasCollision:
+            SOUNDS['death'].play()
+            if self.playerTries.numTries > 0:
+                self.player.hp -= self.player.hp//self.playerTries.numTries
+                self.clearScreen()
+                self.hasCollision = False
+            else:
+                self.playing = False 
+                self.endgame = True       
+    
+    def changeBgColor(self):
+        if self.alternator%1000 == 0:
+            if self.rgb['r'] > 0 and self.rgb['g'] > 0 and self.rgb['b'] > 0:
+                self.rgb['r'] -= 15
+                self.rgb['g'] -= 15
+                self.rgb['b'] -= 15
+        else:
+            if self.rgb['r'] < 255 and self.rgb['g'] < 255 and self.rgb['b'] < 255:
+                self.rgb['r'] += 15
+                self.rgb['g'] += 15
+                self.rgb['b'] += 15
+                
+    def clearScreen(self):
+        self.bird = Bird()
+        self.seedCactus()
+        if self.cloud.__len__() == 0:
+            self.seedCloud()
+            self.player.hp = 3500
+        self.player.dino_rect.x = 0
+        self.hasCollision = False
+    
+    def seedCactus(self):
+        self.cactus.clear()
+        for i in range(NUM_OBSTACLES):
+            cactus = Cactus()
+            self.cactus.append(cactus)
+    
+    def seedCloud(self):
+        self.cloud.clear()
+        for i in range(4):
+            cloud = Cloud()
+            self.cloud.append(cloud)
+    
+    def pauseMenu(self):
+        pass
+            
+    def gameOver(self):
+        self.clearScreen()
+        self.cloud.clear()
+        self.screen.fill((255, 255, 255))
+        message = self.showMessage('Game Over', 40, (0, 0, 0))
+        self.screen.blit(message, (SCREEN_WIDTH//2 - message.get_width()//2, SCREEN_HEIGHT//4))
+        
+        message = self.showMessage(f'Pontuação: {self.points}', 20, (0, 0, 0))
+        self.screen.blit(message, (SCREEN_WIDTH//2 - message.get_width()//2, SCREEN_HEIGHT//3))
+        
+        message = self.showMessage('Pressione \"R\" para reiniciar ou \"F\" para finalizar.', 20, (0, 0, 0))
+        self.screen.blit(message, (SCREEN_WIDTH//2 - message.get_width()//2, SCREEN_HEIGHT//2 - message.get_height()))
+        
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_f:
+                    pygame.quit()
+                elif event.key == pygame.K_r:
+                    self.points = 0
+                    if self.player.dino_jump:
+                        self.player.dino_jump = False
+                        self.player.dino_rect.y = 310
+                    self.cloud.clear()
+                    self.run()
+        
+        pygame.display.update()
+        pygame.display.flip()
