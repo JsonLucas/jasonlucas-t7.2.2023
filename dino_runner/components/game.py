@@ -239,6 +239,7 @@ class Game:
                         self.player.dino_rect.y = 310
                     self.cloud.clear()
                     self.power = POWERS
+                    self.endgame = False
                     self.run()
 
         pygame.display.update()
