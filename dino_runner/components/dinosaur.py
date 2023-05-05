@@ -1,5 +1,5 @@
 import pygame
-from dino_runner.utils.constants import RUNNING, JUMPING, DUCKING, SCREEN_WIDTH, SOUNDS
+from dino_runner.utils.constants import RUNNING, RUNNING_HAMMER, RUNNING_SHIELD, JUMPING, JUMPING_HAMMER, JUMPING_SHIELD, DUCKING, DUCKING_HAMMER, DUCKING_SHIELD, SCREEN_WIDTH, SOUNDS
 
 X_POS = 0
 Y_POS = 310
@@ -21,6 +21,8 @@ class Dinosaur:
         self.jump_vel = JUMP_VEL
         self.hp = HP
         self.playSound = 0
+        self.hasPowerUp = False
+        self.powerType = ''
 
     def update(self, user_input):
         if user_input[pygame.K_UP]:
@@ -48,17 +50,36 @@ class Dinosaur:
             self.steps_count = 0
 
     def run(self):
-        self.image = RUNNING[self.steps_count//5]
+        if self.hasPowerUp:
+            if self.powerType.lower() == 'hammer':
+                self.image = RUNNING_HAMMER[self.steps_count//5]
+            else:
+                self.image = RUNNING_SHIELD[self.steps_count//5]
+        else:
+            self.image = RUNNING[self.steps_count//5]
         self.dino_rect.y = Y_POS
         self.steps_count += 1
 
     def duck(self):
-        self.image = DUCKING[self.steps_count//5]
+        if self.hasPowerUp:
+            if self.powerType.lower() == 'hammer':
+                self.image = DUCKING_HAMMER[self.steps_count//5]
+            else:
+                self.image = DUCKING_SHIELD[self.steps_count//5]
+        else:
+            self.image = DUCKING[self.steps_count//5]
         self.dino_rect.y = Y_POS_DUCK
         self.steps_count += 1
 
     def jump(self):
-        self.image = JUMPING
+        if self.hasPowerUp:
+            if self.powerType.lower() == 'hammer':
+                self.image = JUMPING_HAMMER
+            else:
+                self.image = JUMPING_SHIELD
+        else:
+            self.image = JUMPING
+            
         if self.dino_jump:
             if self.playSound == 1:
                 SOUNDS['jump'].play()
