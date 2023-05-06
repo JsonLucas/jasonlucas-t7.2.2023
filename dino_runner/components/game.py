@@ -43,26 +43,31 @@ class Game:
         self.hasCollision = False
         self.changeBg = False
         self.endgame = False
+        self.pause = False
 
-    def execute(self):
-        self.endgame = True
-
-        while self.endgame:
-            if not self.playing:
-                self.gameOver()
+    def execute(self, type = 'endgame'):
+        if type == 'pause':
+            while self.pause:
+                if not self.playing:
+                    self.pauseMenu()
+        else:
+            self.endgame = True
+            while self.endgame:
+                if not self.playing:
+                    self.gameOver()
 
         pygame.display.quit()
         pygame.quit()
 
-    def run(self):
-        # Game loop: events - update - draw
-        self.clearScreen()
-
+    def run(self):        
         self.playing = True
         while self.playing:
             self.hasCollision = self.update()
             self.verificateCollision()
-
+        
+        if self.pause:
+            self.execute('pause')
+            
         if self.endgame:
             self.execute()
 
@@ -70,8 +75,19 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.playing = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    if not self.pause:
+                        self.playing = False
+                        self.pause = True
+                        self.pauseMenu()
 
     def update(self):
+        if self.cloud.__len__() == 0:
+            self.seedCloud()
+        if self.cactus.__len__() == 0:
+            self.seedCactus()
+            
         points = self.showMessage(f'Points: {self.points}', 25, (90, 90, 90))
         self.points += 1
         self.events()
@@ -212,7 +228,25 @@ class Game:
             self.cloud.append(cloud)
 
     def pauseMenu(self):
-        pass
+        message = self.showMessage('Game Paused', 40, (90, 90, 90))
+        self.screen.blit(message, (SCREEN_WIDTH//2 - message.get_width()//2, SCREEN_HEIGHT//4))
+
+        message = self.showMessage('Pressione \"P\" para continuar, ou \"Q\" para sair.', 20, (90, 90, 90))
+        self.screen.blit(message, (SCREEN_WIDTH//2 - message.get_width()//2, SCREEN_HEIGHT//3))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.pause = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    if self.pause:
+                        self.playing = True
+                        self.pause = False
+                        self.run()
+                elif event.key == pygame.K_q:
+                    self.pause = False
+
+        pygame.display.update()
+        pygame.display.flip()
 
     def gameOver(self):
         self.clearScreen()
